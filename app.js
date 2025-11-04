@@ -1,98 +1,137 @@
+// == Todo App Logic == //
+
 const todoForm = document.querySelector('#todos-form');
 const todoInput = document.querySelector('#title');
 const todoSummary = document.querySelector('#summary');
 const todoDate = document.querySelector('#date');
 const todoList = document.querySelector('#todos-list');
 
+let editingId = null;
+
 function getDayName(day) {
-    switch (day) {
-        case 0:
-            return 'Sun';
-        case 1:
-            return 'Mon';
-        case 2:
-            return 'Tues';
-        case 3:
-            return 'Wed';
-        case 4:
-            return 'Thurs';
-        case 5:
-            return 'Fri';
-        case 6:
-            return 'Sat';
-        default:
-            return 'Invalid'
-    }
+  switch (day) {
+    case 0: return 'Sun';
+    case 1: return 'Mon';
+    case 2: return 'Tues';
+    case 3: return 'Wed';
+    case 4: return 'Thurs';
+    case 5: return 'Fri';
+    case 6: return 'Sat';
+    default: return 'Invalid';
+  }
 }
 
-function createList(todoData) {
-    const MainDiv = document.createElement('div');
-    MainDiv.classList.add("list-item");
+  function createList(todo) {
+  const item = document.createElement('div');
+  item.classList.add('list-item');
+  item.setAttribute('data-id', todo.id);
 
-    const contentDiv = document.createElement('div');
-    
-    const titleDiv = document.createElement('div');
-    const titleContent = document.createElement('strong');
-    titleContent.textContent = todoData.title;
-    titleDiv.append(titleContent)
+  const content = document.createElement('div');
 
-    const summaryDiv = document.createElement('div');
-    summaryDiv.classList.add('small');
-    summaryDiv.textContent = todoData.summary;
+  const titleEl = document.createElement('strong');
+  titleEl.textContent = todo.title;
 
-    contentDiv.append(titleDiv);
-    contentDiv.append(summaryDiv);
+  const summaryEl = document.createElement('p');
+  summaryEl.textContent = todo.summary;
 
-    const actionDiv = document.createElement('div');
-    actionDiv.classList.add('actions');
-    
-    const date = document.createElement('small');
-    date.textContent = todoData.date;
+  content.append(titleEl, summaryEl);
 
-    const editBtn = document.createElement('button');
-    editBtn.setAttribute('class', 'edit');
-    editBtn.textContent = "Edit";
+  const actions = document.createElement('div');
+  actions.classList.add('actions');
 
-    const deleteBtn = document.createElement('button');
-    deleteBtn.setAttribute('class', 'delete');
-    deleteBtn.textContent = "Delete";
+  const dateEl = document.createElement('small');
+  dateEl.textContent = todo.dayName;
 
-    actionDiv.append(date);
-    actionDiv.append(editBtn);
-    actionDiv.append(deleteBtn);
+  const editBtn = document.createElement('button');
+  editBtn.textContent = 'Edit';
+  editBtn.classList.add('edit');
+  editBtn.type = 'button';
 
-    MainDiv.append(contentDiv);
-    MainDiv.append(actionDiv);
+  const deleteBtn = document.createElement('button');
+  deleteBtn.textContent = 'Delete';
+  deleteBtn.classList.add('delete');
+  deleteBtn.type = 'button';
 
-    return MainDiv;
+  editBtn.addEventListener('click', () => fillFormForEdit(todo.id));
+  deleteBtn.addEventListener('click', () => deleteTodo(todo.id));
+
+  actions.append(dateEl, editBtn, deleteBtn);
+
+  item.append(content, actions);
+  return item;
 }
 
-const todosArr = [];
+const todos = [];
 
 todoForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    console.log(e, todoDate.value)
-    const submitTodo = {
-        title: todoInput.value,
-        summary: todoSummary.value,
-        date: getDayName(new Date(todoDate.value).getDay())
+  e.preventDefault();
+
+  const title = todoInput.value.trim();
+  const summary = todoSummary.value.trim();
+  const dateValue = todoDate.value;
+
+  if (!title || !summary || !dateValue) {
+    alert('Please fill all fields!');
+    return;
+  }
+
+  const dayName = getDayName(new Date(dateValue).getDay());
+
+  if (editingId) {
+    const index = todos.findIndex(t => t.id === editingId);
+    if (index !== -1) {
+      todos[index] = { ...todos[index], title, summary, rawDate: dateValue, dayName };
+      renderOrReplace(todos[index]);
     }
+    editingId = null; 
+  } else {
+    const newTodo = {
+      id: Date.now(),
+      title,
+      summary,
+      rawDate: dateValue,
+      dayName
+    };
+    todos.unshift(newTodo);
+    renderOrReplace(newTodo);
+  }
 
-    todosArr.unshift(submitTodo)
+  todoInput.value = '';
+  todoSummary.value = '';
+  todoDate.value = '';
+});
 
-    const items = createList(submitTodo);
+function renderOrReplace(todo) {
+  const existing = document.querySelector(`[data-id="${todo.id}"]`);
+  const newItem = createList(todo);
+  if (existing) {
+    existing.replaceWith(newItem);
+  } else {
+    todoList.prepend(newItem);
+  }
+}
 
-    console.log(items)
-    todoList.prepend(items);
+function deleteTodo(id) {
+  const index = todos.findIndex(t => t.id === id);
+  if (index !== -1) todos.splice(index, 1);
 
-    todoInput.value = '';
-    todoSummary.value = '';
-    todoDate.value = '';
-})
+  const element = document.querySelector(`[data-id="${id}"]`);
+  if (element) element.remove();
+
+  if (editingId === id) editingId = null; 
+}
 
 
+function fillFormForEdit(id) {
+  const todo = todos.find(t => t.id === id);
+  if (!todo) return;
 
+  todoInput.value = todo.title;
+  todoSummary.value = todo.summary;
+  todoDate.value = todo.rawDate;
 
+  editingId = id; 
+}
 
 
 
